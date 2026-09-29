@@ -84,6 +84,10 @@ order through the apply loop, and every replica applies the same sequence. Your 
 deterministic in `apply` and must handle the "not leader" reply. Open `src/infra/raft/` only when a
 bug trace leads you there (G7).
 
+## Week 6+: beyond the roadmap
+See [`NEXT_STEPS.md`](NEXT_STEPS.md): a prioritised list of what to learn next (build, protobuf
+compatibility, async gRPC, durability, performance, memory model), with exercises 13–17 and guided tasks G8–G10.
+
 ---
 
 ## Debugging

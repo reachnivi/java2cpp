@@ -136,3 +136,30 @@ commits entries from its own term.
   RocksDB keys) must stay backward compatible with existing logs/snapshots:
   add fields, never renumber or reuse.
 - Anything in `applyEvent` / appliers must be deterministic.
+
+---
+
+## Tasks that need the real libraries (pair with `NEXT_STEPS.md`)
+These use the Docker build from G1: protoc, gRPC and RocksDB are all inside it.
+
+### G8 — Evolve a proto compatibly and prove it (after ex 14)
+1. Add `string tracking_context = 2;` to `IncreaseRequest` in `demo.proto` (the next free number).
+2. Keep a copy of a log/SQLite store written by the **old** binary; start the **new** binary on it: replay must succeed.
+3. Write a new entry with the new binary, then start the **old** binary on it (a rollback): it must replay too,
+   ignoring the field. Protobuf keeps unknown fields, so re-serialising doesn't lose them.
+4. Add a gtest that decodes a checked-in byte string produced by the old schema ("golden bytes"), so
+   CI catches future incompatible edits.
+
+### G9 — Deadlines and statuses on a real client call (after ex 15)
+Find the client stub calls under `src/infra/forward/` (forwarding to the leader). For each, answer:
+is a deadline set (`ClientContext::set_deadline`)? What happens to the caller if the leader hangs?
+Which `grpc::StatusCode` values are handled, and is `UNAVAILABLE` retried? Write down the answers and, if
+one is missing a deadline, that's a good first PR (with a test using a server that never replies).
+
+### G10 — RocksDB in the v2 state machine (after ex 13)
+Read `src/app_demo/v2/RocksDBBackedAppStateMachine.cpp`:
+- Where is the `rocksdb::WriteBatch` built, and why must all keys for one applied index be written in **one** batch?
+- Is `WriteOptions::sync` set? If not, what makes it safe? (Hint: the Raft log is the source of truth;
+  after a crash the state machine can replay from its last *persisted* applied index.)
+- How is the "last applied index" stored, and is it written in the same batch as the data? What breaks if it isn't?
+- Where is each `rocksdb::Status` checked, and what happens on `IOError` (for example a full disk)?

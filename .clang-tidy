@@ -1,0 +1,16 @@
+# Checks chosen to catch the bug classes in crash_lab/ before run time.
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-pro-type-member-init,
+  cppcoreguidelines-prefer-member-initializer,
+  misc-misplaced-const,
+  performance-*,
+  -performance-avoid-endl
+WarningsAsErrors: ''
+HeaderFilterRegex: '(crash_lab|exercises|solutions)/'
+FormatStyle: file

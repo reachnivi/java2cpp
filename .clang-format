@@ -1,0 +1,5 @@
+# Google style with Gringofts' 120-column limit (see Gringofts' CPPLINT.cfg: linelength=120)
+BasedOnStyle: Google
+ColumnLimit: 120
+DerivePointerAlignment: false
+PointerAlignment: Right

@@ -6,10 +6,11 @@ Rapid onboarding from Java to C++, aimed at contributing to
 | Doc | What it is |
 |---|---|
 | [ROADMAP.md](ROADMAP.md) | 5-week day-by-day plan (Raft treated as a black box), reading list |
+| [NEXT_STEPS.md](NEXT_STEPS.md) | **what to learn after the roadmap**: build/CMake, protobuf compatibility, async gRPC, durability & RocksDB, clocks, observability, TLS, performance, memory model, distributed-systems basics, prioritised with resources |
 | [DEBUGGING.md](DEBUGGING.md) | production debugging playbook: exit codes & abort messages, core dumps (local/systemd/Docker/k8s), gdb, sanitizers, hangs, leaks, build/link errors |
 | [JAVA_TO_CPP_CHEATSHEET.md](JAVA_TO_CPP_CHEATSHEET.md) | syntax map, parameter-passing rules, "compiles but is a bug" list, reading compiler errors |
 | [GRINGOFTS_GUIDE.md](GRINGOFTS_GUIDE.md) | codebase map, request trace, and real contribution tasks (G1–G7) |
-| [`exercises/`](exercises) | 13 test-driven exercises, each tied to Gringofts code |
+| [`exercises/`](exercises) | 18 test-driven exercises, each tied to Gringofts code (00–12 language core, 13–17 systems topics) |
 | [`crash_lab/`](crash_lab/README.md) | 16 deliberately broken programs: segfaults, aborts, deadlocks, races, leaks, heap corruption, stripped prod binaries. Diagnose from the core/log, then fix |
 
 ## Exercises
@@ -32,6 +33,11 @@ written), and `src/` (starter code with `TODO`s). You make the tests pass.
 | 10 | atomics, thread-owning loops, prompt shutdown | `CommandProcessLoop`, `EventApplyLoop`, `App::shutdown()` |
 | 11 | gtest fixtures, gmock `MOCK_METHOD` / `EXPECT_CALL` | `test/`, `ReadonlyCommandEventStoreMock.h` |
 | 12 | **capstone**: mini event-sourced app, add a new command | `app_demo` end to end |
+| 13 | POSIX I/O, fsync, torn-write recovery, `std::system_error` | `raft/storage/Segment.cpp`, `FileUtil` |
+| 14 | protobuf wire format, schema evolution, unknown fields | `demo.proto`, `store.proto`, type constants |
+| 15 | gRPC async model: completion queue, `CallData`, deadlines, shutdown | `RequestCallData.h`, `RequestReceiver`, `forward/` |
+| 16 | allocation cost, `std::pmr`, arenas, profiling | `MemoryPool`, `TrackingMemoryResource` |
+| 17 | memory model: acquire/release, lock-free SPSC, false sharing | atomics in queues and loops |
 
 ## Quick start
 
@@ -75,6 +81,8 @@ gdb build/crash_lab/lab01 cores/core.lab01
 BUILD=build-asan crash_lab/scripts/run_lab.sh 07   # same lab, AddressSanitizer build
 build/crash_lab/lab16 2>&1 | crash_lab/scripts/symbolize.sh   # logs-only crash -> file:line
 ```
+Static analysis: `scripts/lint.sh crash_lab` (clang-tidy, config in `.clang-tidy`). See the bonus section of the answers for what it does and doesn't catch.
+
 Missions are in [`crash_lab/README.md`](crash_lab/README.md), answers in [`crash_lab/ANSWERS.md`](crash_lab/ANSWERS.md).
 Needs `gdb`; `valgrind` is used by lab 14. The labs are plain executables, so `ctest` doesn't run them.
 

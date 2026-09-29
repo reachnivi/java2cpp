@@ -20,8 +20,10 @@
 #define LAB_LOG(level, ...)                                                                   \
   do {                                                                                        \
     auto _now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());      \
+    std::tm _tm{};                                                                            \
+    localtime_r(&_now, &_tm); /* std::localtime is not thread-safe */                        \
     char _ts[16];                                                                             \
-    std::strftime(_ts, sizeof(_ts), "%H:%M:%S", std::localtime(&_now));                       \
+    std::strftime(_ts, sizeof(_ts), "%H:%M:%S", &_tm);                                        \
     std::fprintf(stderr, "[%s] [%s:%d %s] [%s] [thread %ld] ", _ts, __FILE_NAME__, __LINE__, \
                  __func__, level, static_cast<long>(::syscall(SYS_gettid)));                  \
     std::fprintf(stderr, __VA_ARGS__);                                                        \

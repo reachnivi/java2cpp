@@ -43,6 +43,9 @@ file(GLOB EXERCISE_DIRS RELATIVE ${CMAKE_SOURCE_DIR}/exercises ${CMAKE_SOURCE_DI
 list(SORT EXERCISE_DIRS)
 
 foreach(ex ${EXERCISE_DIRS})
+  if(NOT EXISTS ${CMAKE_SOURCE_DIR}/exercises/${ex}/test.cpp)
+    continue()  # work-in-progress exercise folder
+  endif()
   if(J2C_USE_SOLUTIONS)
     set(code_dir ${CMAKE_SOURCE_DIR}/solutions/${ex})
   else()

@@ -262,3 +262,43 @@ The number is the member's offset.
 calling `_exit` would lose the core. Resetting to `SIG_DFL` and re-raising gives you both the log and the core.
 **In Gringofts:** add `absl::InstallFailureSignalHandler(absl::FailureSignalHandlerOptions())` (target
 `absl::failure_signal_handler`) at the top of `main()` in `Main.cpp`. Abseil is already in `third_party/`.
+
+---
+
+## Bonus — static analysis results (clang-tidy 18, this repo's `.clang-tidy`)
+Measured, not guessed. `scripts/lint.sh crash_lab` reports:
+
+| Lab | Caught? | Finding |
+|---|---|---|
+| 14 uninitialised member | **yes, twice** | `cppcoreguidelines-pro-type-member-init`: constructor does not initialize `mIsLeader`; `clang-analyzer-core.uninitialized.UndefReturn`: garbage value returned from `isLeader()` |
+| 13, 15 | incidental | `pro-type-member-init` on aggregate fields (`Session::lastSeenMs`, `Account::balance`). Worth fixing, but not the lab's bug |
+| 01, 02, 03, 04, 05, 06, 07, 08, 10, 11, 12, 13, 15, 16 | **no** | null derefs, dangling references, heap overflow, recursion, iterator invalidation, lifetime-in-destructor, shared_ptr cycles, lock order and races all pass clean. `clang -Wall -Wextra` is silent on all 16 too |
+| 09 reentrant lock | **only with annotations** | see below |
+
+(clang-tidy's `concurrency-mt-unsafe` also flagged `std::localtime` in the labs' own logging macro, a real
+thread-safety bug in the helper. It's fixed now: `localtime_r`.)
+
+**Takeaway:** turn on clang-tidy and treat its findings as bugs, but most of the costly C++ failures are
+only found **at run time**: ASan/UBSan/TSan in CI, plus good crash diagnostics in production.
+
+### Clang thread-safety analysis catches lab 09 at compile time
+Annotate which mutex guards which data and which functions take the lock. Abseil (already in
+Gringofts' `third_party/`) provides `absl::Mutex` with the annotations built in, plus the macros
+`ABSL_GUARDED_BY`, `ABSL_LOCKS_EXCLUDED`, `ABSL_EXCLUSIVE_LOCKS_REQUIRED`.
+```cpp
+class RaftRole {
+ public:
+  uint64_t term() const ABSL_LOCKS_EXCLUDED(mMutex) { absl::MutexLock l(&mMutex); return mTerm; }
+  void becomeLeader() ABSL_LOCKS_EXCLUDED(mMutex) { absl::MutexLock l(&mMutex); ++mTerm; term(); }
+ private:
+  mutable absl::Mutex mMutex;
+  uint64_t mTerm ABSL_GUARDED_BY(mMutex) = 1;
+};
+```
+`clang++ -Wthread-safety` then reports (verified with an equivalent hand-annotated wrapper):
+```
+warning: cannot call function 'term' while mutex 'mMutex' is held [-Wthread-safety-analysis]
+warning: reading variable 'mTerm' requires holding mutex 'mMutex'      (for any unguarded access)
+```
+It works with Clang only (GCC ignores the attributes), and only on code you annotate. That makes it a good fit for the few
+classes in Gringofts where several threads share state.

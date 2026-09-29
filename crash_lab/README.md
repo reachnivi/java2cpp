@@ -144,3 +144,13 @@ Run `build/crash_lab/lab16 2>&1 | crash_lab/scripts/symbolize.sh`.
 - Which frame is the handler itself, which is the kernel's signal trampoline, and which is the real crash?
 - Resolve the crashing frame by hand with `nm` + `addr2line` (the script shows how), so you can do it on a machine without this script.
 - Gringofts vendors Abseil: find `absl::InstallFailureSignalHandler` and sketch how you'd enable it in `Main.cpp`.
+
+---
+
+## Bonus: what would static analysis have caught?
+```bash
+cmake -S . -B build            # writes build/compile_commands.json
+scripts/lint.sh crash_lab      # clang-tidy with the repo's .clang-tidy
+```
+Before reading the answer (end of `ANSWERS.md`), predict which of the 16 bugs a static analyser
+can find without running anything. Then try Clang's thread-safety analysis on lab 09 (snippet in `ANSWERS.md`).
