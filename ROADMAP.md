@@ -1,6 +1,6 @@
 # C++ for an advanced Java developer → contributing to Gringofts
 
-A 4-week, ~1.5–2 h/day plan. It is ordered by **what you need to read and
+A 5-week, ~1.5–2 h/day plan. It is ordered by **what you need to read and
 change Gringofts code**, not by textbook order. Every phase ends with an
 exercise in this repo (`exercises/NN_*`) and a reading task in Gringofts
 (`GRINGOFTS_GUIDE.md`).
@@ -47,43 +47,49 @@ Gringofts facts that shape this plan:
 `src/infra/mpscqueue/MpscQueue.h` and explain every keyword on every line
 (`virtual`, `= 0`, `override`, `const`, `= default`, `static constexpr`, `std::optional`, `std::string_view`).
 
-## Week 3 — Concurrency, testing, and the build
+## Week 3 — Concurrency, testing, and your first core dumps
 
-| Day | Topic | Exercise | Key idea |
+| Day | Topic | Where | Key idea |
 |---|---|---|---|
 | 11 | `std::thread`, `mutex`, `condition_variable` | `09_threads_queue` | a joinable `std::thread` destroyed = `std::terminate()` |
 | 12 | `std::atomic`, loop objects, clean shutdown | `10_loop_atomics` | data races are UB; use TSan |
 | 13 | gtest / gmock | `11_gmock` | mocks need virtual methods → design to interfaces |
-| 14 | Sanitizers & debugging | re-run 04, 09, 10 with `-DJ2C_SANITIZER=address/thread`; `gdb`/`lldb` basics (below) | most C++ bugs are found by tools, not by staring |
-| 15 | Build Gringofts (Docker) and run its tests | `GRINGOFTS_GUIDE.md` G1 | |
+| 14 | Core dumps + gdb; the `std::terminate` family | crash lab 01–04, `DEBUGGING.md` §1–3 | read the stderr message, then `bt` on the **right thread** |
+| 15 | Memory errors | crash lab 05–07 + ASan | crash site ≠ bug site; glibc heap aborts mean "go to ASan" |
 
-## Week 4 — Gringofts itself
+## Week 4 — Hangs, leaks, production crashes
+
+| Day | Topic | Where | Key idea |
+|---|---|---|---|
+| 16 | Deadlocks and races | crash lab 08–10, `gcore`, TSan | `thread apply all bt` + mutex `__owner` |
+| 17 | Stack overflow, leaks, iterators, uninitialised state | crash lab 11–14 | exit 137 = OOM kill, no core; valgrind for uninitialised reads |
+| 18 | Production crashes: optimised, stripped, logs only | crash lab 15–16, `DEBUGGING.md` §6 | keep `.debug` files per release; install a failure signal handler |
+| 19 | Build Gringofts (Docker), run its tests under ASan/TSan | `GRINGOFTS_GUIDE.md` G1 | check what flags production really uses (`DEBUGGING.md` §6.5) |
+| 20 | Build/link errors and dependency issues | `DEBUGGING.md` §7 | `nm`, `c++filt`, `ldd`, `make VERBOSE=1` |
+
+## Week 5 — Gringofts itself (Raft stays a black box)
 
 | Day | Topic | Where |
 |---|---|---|
-| 16 | Capstone: mini event-sourced app + new command | `12_event_sourcing_capstone` |
-| 17 | Protobuf & gRPC (sync/async servers, `CompletionQueue`) | `GRINGOFTS_GUIDE.md` G2–G3 |
-| 18 | Trace a request end to end through the demo app | G3 |
-| 19–20 | First real change: add `DecreaseCommand` to `app_demo` with tests | G4 |
-| 21+ | Raft internals (`src/infra/raft/v2/RaftCore.cpp`), storage, metrics | G5–G7 |
+| 21 | Capstone: mini event-sourced app + new command | `12_event_sourcing_capstone` |
+| 22 | Protobuf & gRPC (async server, `CompletionQueue`, `CallData` lifetime) | `GRINGOFTS_GUIDE.md` G2 |
+| 23 | Trace a request end to end; the shutdown order in `App::shutdown()` | G3 |
+| 24–25 | First real change: add `DecreaseCommand` to `app_demo` with tests | G4 |
+| later | Config + metrics changes; unit tests for infra | G5–G6 |
+
+**Treating Raft as a black box** means knowing only its contract, as seen by the application:
+commands go into `RaftCommandEventStore`, which calls `onPersisted()` once they're committed or
+`onPersistFailed(code, msg, leaderHint)` if not (for example, this node isn't the leader). Committed events come back in
+order through the apply loop, and every replica applies the same sequence. Your code must be
+deterministic in `apply` and must handle the "not leader" reply. Open `src/infra/raft/` only when a
+bug trace leads you there (G7).
 
 ---
 
-## Debugging cheat sheet
-```bash
-# build with symbols (Debug is the default in this repo)
-gdb --args ./build/ex09 --gtest_filter='MpscQueue.*'
-(gdb) run            # reproduce
-(gdb) bt             # stack trace of the crashing thread
-(gdb) thread apply all bt   # all threads (deadlocks!)
-(gdb) frame 3 ; info locals ; p *this
-```
-- **Segfault** → run under ASan first (`-DJ2C_SANITIZER=address`); it prints
-  the exact use-after-free / out-of-bounds with allocation + free stacks.
-- **Hang** → `gdb -p <pid>` then `thread apply all bt`; look for two threads
-  each waiting on a mutex the other holds.
-- **Flaky test** → `--gtest_repeat=1000 --gtest_break_on_failure` under TSan.
-- **Undefined behaviour** → `-DJ2C_SANITIZER=undefined`.
+## Debugging
+The full playbook is in [`DEBUGGING.md`](DEBUGGING.md): symptom tables, core dump setup (local,
+systemd, Docker/k8s), gdb, sanitizers, recipes for hangs, leaks and Heisenbugs, and production
+build hygiene. Practise with [`crash_lab/`](crash_lab/README.md).
 
 ## Books & references (in priority order)
 1. *A Tour of C++* (3rd ed.), Stroustrup — 250 pages, the fastest overview for an experienced programmer.

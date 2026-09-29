@@ -58,3 +58,6 @@ foreach(ex ${EXERCISE_DIRS})
   # Every test gets a timeout so a deadlock in your code fails instead of hanging.
   gtest_discover_tests(${target} TEST_PREFIX "${ex}." PROPERTIES TIMEOUT 20)
 endforeach()
+
+# Debugging practice: deliberately broken programs (see crash_lab/README.md)
+add_subdirectory(crash_lab)

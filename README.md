@@ -5,10 +5,12 @@ Rapid onboarding from Java to C++, aimed at contributing to
 
 | Doc | What it is |
 |---|---|
-| [ROADMAP.md](ROADMAP.md) | 4-week day-by-day plan, debugging cheat sheet, reading list |
+| [ROADMAP.md](ROADMAP.md) | 5-week day-by-day plan (Raft treated as a black box), reading list |
+| [DEBUGGING.md](DEBUGGING.md) | production debugging playbook: exit codes & abort messages, core dumps (local/systemd/Docker/k8s), gdb, sanitizers, hangs, leaks, build/link errors |
 | [JAVA_TO_CPP_CHEATSHEET.md](JAVA_TO_CPP_CHEATSHEET.md) | syntax map, parameter-passing rules, "compiles but is a bug" list, reading compiler errors |
 | [GRINGOFTS_GUIDE.md](GRINGOFTS_GUIDE.md) | codebase map, request trace, and real contribution tasks (G1–G7) |
 | [`exercises/`](exercises) | 13 test-driven exercises, each tied to Gringofts code |
+| [`crash_lab/`](crash_lab/README.md) | 16 deliberately broken programs: segfaults, aborts, deadlocks, races, leaks, heap corruption, stripped prod binaries. Diagnose from the core/log, then fix |
 
 ## Exercises
 
@@ -64,6 +66,17 @@ cmake -S . -B build-ubsan -DJ2C_SANITIZER=undefined
 
 Every test has a 20 s timeout under ctest, so a deadlock in your queue shows
 up as a failure instead of a hang.
+
+## Crash lab (debugging practice)
+
+```bash
+crash_lab/scripts/run_lab.sh 01          # runs lab01 with core dumps on, prints the gdb command
+gdb build/crash_lab/lab01 cores/core.lab01
+BUILD=build-asan crash_lab/scripts/run_lab.sh 07   # same lab, AddressSanitizer build
+build/crash_lab/lab16 2>&1 | crash_lab/scripts/symbolize.sh   # logs-only crash -> file:line
+```
+Missions are in [`crash_lab/README.md`](crash_lab/README.md), answers in [`crash_lab/ANSWERS.md`](crash_lab/ANSWERS.md).
+Needs `gdb`; `valgrind` is used by lab 14. The labs are plain executables, so `ctest` doesn't run them.
 
 ## Suggested workflow per exercise (~1–2 h)
 1. Read the exercise `README.md`, then the linked Gringofts files.
