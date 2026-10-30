@@ -68,7 +68,12 @@ if command -v gdb >/dev/null; then
   )
   core="$(ls "$work"/core* 2>/dev/null | head -1)"
   if [[ -z $core ]]; then
-    echo "lab15: no core file written here (core_pattern: $(cat /proc/sys/kernel/core_pattern)); skipping gdb check"
+    msg="lab15: no core file written (core_pattern: $(cat /proc/sys/kernel/core_pattern))"
+    if [[ ${REQUIRE_CORE:-0} == 1 ]]; then
+      fail "$msg. CI sets a plain core_pattern, so this should not happen."
+    else
+      echo "$msg; skipping gdb check (set REQUIRE_CORE=1 to make this fatal)"
+    fi
   else
     bt="$(gdb -batch -ex "symbol-file $labs/lab15.debug" -ex bt "$labs/lab15_stripped" "$core" 2>&1)"
     if grep -q 'Ledger::transfer' <<<"$bt"; then

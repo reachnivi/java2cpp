@@ -28,7 +28,7 @@ jobs:
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
       ASAN_OPTIONS: detect_leaks=1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Ubuntu 24.04 runners use high ASLR entropy, which makes TSan (and
       # sometimes ASan) abort with "unexpected memory mapping".
@@ -52,7 +52,7 @@ jobs:
     name: starters compile and fail cleanly
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Configure
         run: cmake -S . -B build
       - name: Build
@@ -65,12 +65,18 @@ jobs:
     name: crash labs behave as documented
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install gdb
         run: sudo apt-get update -q && sudo apt-get install -y -q gdb
+      # Runners pipe cores to systemd-coredump; write plain files instead so
+      # the lab 15 stripped-core + .debug check really runs.
+      - name: Enable plain core files
+        run: sudo sysctl -w kernel.core_pattern=core.%p
       - name: Configure
         run: cmake -S . -B build
       - name: Build
         run: cmake --build build -j"$(nproc)"
       - name: Verify labs
+        env:
+          REQUIRE_CORE: "1"
         run: scripts/ci/verify_labs.sh build
