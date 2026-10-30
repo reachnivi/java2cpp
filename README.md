@@ -1,5 +1,7 @@
 # java2cpp
 
+[![CI](https://github.com/reachnivi/java2cpp/actions/workflows/ci.yml/badge.svg)](https://github.com/reachnivi/java2cpp/actions/workflows/ci.yml)
+
 Rapid onboarding from Java to C++, aimed at contributing to
 [eBay/Gringofts](https://github.com/eBay/Gringofts) (C++17 event-sourcing + Raft framework).
 
@@ -85,6 +87,13 @@ Static analysis: `scripts/lint.sh crash_lab` (clang-tidy, config in `.clang-tidy
 
 Missions are in [`crash_lab/README.md`](crash_lab/README.md), answers in [`crash_lab/ANSWERS.md`](crash_lab/ANSWERS.md).
 Needs `gdb`; `valgrind` is used by lab 14. The labs are plain executables, so `ctest` doesn't run them.
+
+## CI
+Every push runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml): the reference solutions pass plain
+and under ASan, UBSan and TSan; every starter compiles and fails **cleanly** (`scripts/ci/check_starters.sh`:
+no crashes or hangs, and no tests silently lost); and every crash lab still shows its documented symptom,
+including the stripped-core + `.debug` and `symbolize.sh` workflows (`scripts/ci/verify_labs.sh`). Both scripts
+also run locally against a build directory. When you add tests, update the count (123) in `ci.yml`.
 
 ## Suggested workflow per exercise (~1–2 h)
 1. Read the exercise `README.md`, then the linked Gringofts files.

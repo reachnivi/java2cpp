@@ -1,0 +1,76 @@
+name: CI
+
+# Keeps the learning kit honest:
+#  - solutions pass, plain and under ASan / UBSan / TSan
+#  - every starter compiles and fails cleanly (no crash, no hang)
+#  - every crash lab still shows the symptom its README promises
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  solutions:
+    name: solutions (${{ matrix.sanitizer }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [none, address, undefined, thread]
+    env:
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+      ASAN_OPTIONS: detect_leaks=1
+    steps:
+      - uses: actions/checkout@v4
+
+      # Ubuntu 24.04 runners use high ASLR entropy, which makes TSan (and
+      # sometimes ASan) abort with "unexpected memory mapping".
+      - name: Lower ASLR entropy for sanitizers
+        if: matrix.sanitizer != 'none'
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+
+      - name: Configure
+        run: |
+          san="${{ matrix.sanitizer }}"
+          [ "$san" = none ] && san=""
+          cmake -S . -B build -DJ2C_USE_SOLUTIONS=ON -DJ2C_SANITIZER="$san"
+
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -j"$(nproc)"
+
+  starters:
+    name: starters compile and fail cleanly
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+      - name: Check starter tests
+        # 123 = number of tests in the suite; update it when adding tests.
+        run: scripts/ci/check_starters.sh build 123
+
+  crash-lab:
+    name: crash labs behave as documented
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install gdb
+        run: sudo apt-get update -q && sudo apt-get install -y -q gdb
+      - name: Configure
+        run: cmake -S . -B build
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+      - name: Verify labs
+        run: scripts/ci/verify_labs.sh build
