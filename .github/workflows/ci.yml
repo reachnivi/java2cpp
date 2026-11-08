@@ -58,8 +58,8 @@ jobs:
       - name: Build
         run: cmake --build build -j"$(nproc)"
       - name: Check starter tests
-        # 123 = number of tests in the suite; update it when adding tests.
-        run: scripts/ci/check_starters.sh build 123
+        # 198 = number of tests in the suite; update it when adding tests.
+        run: scripts/ci/check_starters.sh build 198
 
   crash-lab:
     name: crash labs behave as documented

@@ -117,6 +117,23 @@ You don't need Raft internals, but you do need the guarantees your application c
 
 ---
 
+## Part 3: design fluency (exercises 18–25)
+Parts 1 and 2 make you good at *reading and debugging* Gringofts-style C++. Part 3 builds the instinct for
+*writing* types that are correct by construction, by implementing the building blocks yourself:
+
+| # | Build | The lesson you can't get from using it |
+|---|---|---|
+| 18 | `Vector<T>` | raw memory vs live objects; basic vs strong exception guarantee; why move constructors must be `noexcept` |
+| 19 | `SharedPtr`/`WeakPtr` | control blocks, atomic refcounts, what `make_shared` saves, why `lock()` needs a CAS loop |
+| 20 | `UniqueFunction` | type erasure without virtuals; small-buffer optimisation; why `std::function` rejects move-only lambdas |
+| 21 | LRU cache | which operations invalidate which iterators; "logically const" reads that mutate |
+| 22 | thread pool | `packaged_task`/`future`, exceptions crossing threads, starvation deadlock |
+| 23 | timer scheduler | functional core + imperative shell; deterministic tests for time-based code |
+| 24 | variant events | closed vs open type sets (the expression problem); compile-time exhaustiveness |
+| 25 | epoll server | partial reads and writes, framing, the busy-loop and SIGPIPE traps under gRPC |
+
+Suggested order: 18 → 19 → 20 (they build on each other), then 21–25 in any order. Allow 2–4 h each.
+
 ## Language features you'll meet but we haven't drilled
 | Topic | Where it shows up | Learn |
 |---|---|---|
