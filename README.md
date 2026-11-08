@@ -1,5 +1,7 @@
 # java2cpp
 
+[![CI](https://github.com/reachnivi/java2cpp/actions/workflows/ci.yml/badge.svg)](https://github.com/reachnivi/java2cpp/actions/workflows/ci.yml)
+
 Rapid onboarding from Java to C++, aimed at contributing to
 [eBay/Gringofts](https://github.com/eBay/Gringofts) (C++17 event-sourcing + Raft framework).
 
@@ -10,7 +12,7 @@ Rapid onboarding from Java to C++, aimed at contributing to
 | [DEBUGGING.md](DEBUGGING.md) | production debugging playbook: exit codes & abort messages, core dumps (local/systemd/Docker/k8s), gdb, sanitizers, hangs, leaks, build/link errors |
 | [JAVA_TO_CPP_CHEATSHEET.md](JAVA_TO_CPP_CHEATSHEET.md) | syntax map, parameter-passing rules, "compiles but is a bug" list, reading compiler errors |
 | [GRINGOFTS_GUIDE.md](GRINGOFTS_GUIDE.md) | codebase map, request trace, and real contribution tasks (G1–G7) |
-| [`exercises/`](exercises) | 18 test-driven exercises, each tied to Gringofts code (00–12 language core, 13–17 systems topics) |
+| [`exercises/`](exercises) | 26 test-driven exercises: 00–12 language core, 13–17 systems topics (both tied to Gringofts code), 18–25 design fluency (build the standard building blocks yourself) |
 | [`crash_lab/`](crash_lab/README.md) | 16 deliberately broken programs: segfaults, aborts, deadlocks, races, leaks, heap corruption, stripped prod binaries. Diagnose from the core/log, then fix |
 
 ## Exercises
@@ -38,6 +40,15 @@ written), and `src/` (starter code with `TODO`s). You make the tests pass.
 | 15 | gRPC async model: completion queue, `CallData`, deadlines, shutdown | `RequestCallData.h`, `RequestReceiver`, `forward/` |
 | 16 | allocation cost, `std::pmr`, arenas, profiling | `MemoryPool`, `TrackingMemoryResource` |
 | 17 | memory model: acquire/release, lock-free SPSC, false sharing | atomics in queues and loops |
+| **Part 3** | **design fluency: you build what you've been using** | |
+| 18 | your own `Vector<T>`: placement new, exception-safety guarantees, `move_if_noexcept` | every container |
+| 19 | your own `SharedPtr`/`WeakPtr`/`makeShared`: control blocks, atomic counts | `shared_ptr<Command>` / `<Event>` everywhere |
+| 20 | move-only `UniqueFunction`: type erasure, small-buffer optimisation | callbacks, `Signal.h`, handlers |
+| 21 | O(1) LRU cache, iterator stability, then thread-safe | caches, peer tables |
+| 22 | thread pool with `packaged_task`/`future`, exceptions across threads | background work, loop threads |
+| 23 | timer scheduler: min-heap, lazy cancel, `wait_until`, fake-clock tests | election timeout / heartbeat timers |
+| 24 | events as `std::variant` + `std::visit` vs virtual dispatch | `Event` hierarchy, the capstone |
+| 25 | non-blocking TCP server with `epoll`: partial reads and writes, framing, `eventfd` | what gRPC does underneath |
 
 ## Quick start
 
@@ -85,6 +96,13 @@ Static analysis: `scripts/lint.sh crash_lab` (clang-tidy, config in `.clang-tidy
 
 Missions are in [`crash_lab/README.md`](crash_lab/README.md), answers in [`crash_lab/ANSWERS.md`](crash_lab/ANSWERS.md).
 Needs `gdb`; `valgrind` is used by lab 14. The labs are plain executables, so `ctest` doesn't run them.
+
+## CI
+Every push runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml): the reference solutions pass plain
+and under ASan, UBSan and TSan; every starter compiles and fails **cleanly** (`scripts/ci/check_starters.sh`:
+no crashes or hangs, and no tests silently lost); and every crash lab still shows its documented symptom,
+including the stripped-core + `.debug` and `symbolize.sh` workflows (`scripts/ci/verify_labs.sh`). Both scripts
+also run locally against a build directory. When you add tests, update the count (198) in `ci.yml`.
 
 ## Suggested workflow per exercise (~1–2 h)
 1. Read the exercise `README.md`, then the linked Gringofts files.
